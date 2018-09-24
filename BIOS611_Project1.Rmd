@@ -1,0 +1,53 @@
+---
+title: "Project 1"
+author: "Courtney Baker"
+date: "September 21, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+#Glucose levels after alcohol consumption
+
+```{r}
+glucose <- tbl_df(nlme::Glucose2) %>% mutate(Time=Time*10, Diet=ifelse(Date==1, "No Dietary Additive", "Dietary Additive"))
+ggplot(glucose, aes(Time, glucose, color=Subject, facet=Diet)) + geom_point(show.legend=F) + geom_line(show.legend=F) + facet_wrap(~Diet) + labs(x="Minutes after alcohol consumption", y="Blood glucose level (mg/dl)", title="Dietary additives have little effect on blood glucose after alcohol consumption")
+```
+
+Blood glucose levels were tested at 14 time points over a 5 hour period of time after the consumption of alcohol. The 7 subjects tested were monitored on two separate days: one where they were given a dietary additive and one where they were not. The median blood glucose level for the subjects when they did not take the dietary additive, `r glucose %>% filter(Date==1) %>% summarise(median(glucose)) %>% round(1)` mg/dl, was slightly higher than the median blood glucose level when the subjects took the dietary additive, `r glucose %>% filter(Date==2) %>% summarise(median(glucose)) %>% round(1)` mg/dl. Overall, from the plotting of the blood glucose levels, there does not seem to be too much of a difference between taking a dietary additive and not taking a dietary additive when consuming alcohol on blood glucose levels.
+
+
+# Seizure counts
+
+```{r}
+seizure <- MASS::epil %>% filter(trt=="placebo") %>% group_by(subject) %>% summarise(total=sum(y))
+ggplot(seizure, aes(total)) + geom_histogram(binwidth = 10) + labs(x="Number of Seizures", title="Total number of seizures during 8 week followup of epileptic patients") + geom_vline(xintercept=median(seizure$total), col="blue") + geom_vline(xintercept = mean(seizure$total), col="chartreuse4") + annotate(geom="text", x=(median(seizure$total)+7), y=11.25, label="median", col="blue") + annotate(geom="text", x=(mean(seizure$total)+6), y=11.25, label="mean", col="chartreuse4") + theme_bw()
+```
+
+The total number of seizure were counted for patients in a randomized trial for an epilepsy medication, progabide, during the 8 weeks of followup after the assignment of treatment or placebo. The plot above shows the seizure count of the placebo group. The distribution is highly right skewed which is exemplified by the mean being much larger than the median (`r seizure %>% summarise(mean(total))` versus `r seizure %>% summarise(median(total))`). All in all, this shows that seizure counts should be transformed before modeling.   
+
+#Gross National Product from Agriculture
+
+```{r}
+ag <- cluster::agriculture %>% mutate(country=row.names(cluster::agriculture)) %>% mutate(Agriculture = x*y/100, Other=x-x*y/100) %>% gather(key="Source", value="GNP", Agriculture, Other)
+ggplot(ag, aes(country, weight=GNP, fill=Source)) + geom_bar(position=position_stack(reverse=TRUE)) + labs(y="Gross National Product", x="Country in European Union", title="Gross National Product for countries in the European Union for 1993", caption="Data source: Eurostat")
+```
+
+Agriculture made up a sizable percentage of the Gross National Product (GNP) in European countries in 1993. The smallest percentage was `r ag %>% summarise(min(y))`% and the highest was `r ag %>% summarise(max(y))`%. Ireland, Portugal, and Italy had the highest total amounts of GNP from agriculture. 
+
+#Transplant wait time
+
+```{r}
+transplant <- survival::transplant %>% filter(event=="ltx")
+ggplot(transplant, aes(abo, futime, fill=abo)) + geom_violin(show.legend = F) + labs(x="Blood Type", y="Time on transplant list (days)", title="Length of time patients remain on liver transplant list until recieving a donor \n organ by blood type") + geom_hline(yintercept = median(transplant$futime)) + annotate(geom="text", x=2.5, y=180, label="108.5 days")
+```
+
+Transplant organs are matched to patients in need on a variety of criteria including blood type. Here is a selection of patient wait times for a liver transplant from 1990-1999, only including those who did receive a liver. The median wait time was `r transplant %>% summarise(median(futime))` days overall. Patients with type O blood had the longest median wait time of `r transplant %>% filter(abo=="O") %>% summarise(median(futime))` days while patients with type AB blood had the shortest median wait time of `r transplant %>% filter(abo=="AB") %>% summarise(median(futime))` days.
+
+```{r include=F}
+transplant %>% group_by(abo) %>% summarise(median(futime))
+```
+
